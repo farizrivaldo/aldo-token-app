@@ -1,13 +1,13 @@
 import React, { useState } from 'react';
 import WalletConnect from './components/WalletConnect';
 import TokenManager from './components/TokenManager';
-import NFTManager from './components/NFTManager';
 import NFTUploader from './components/NFTUploader';
-import NFTSubmited from './components/NFTSubmited';
 import NFTUploaderAndMinter from './components/NFTUploaderAndMinter ';
+import NFTDashboard from './components/NFTDashboard';
 function App() {
   const [userAddress, setUserAddress] = useState(null);  // ✅ INI PENTING
   const contractNFT  = "0x3ED7AbEa85ac7AbEbF4387fFD715bfE0b5beC346"
+  const transactionNFT  = "0x769dAf2A30E2A2be994c65b39aafcfFEa0c7317E"
   return (
     <div style={{ padding: '2rem' }}>
       <h1>🚀 ALDO Dashboard</h1>
@@ -17,9 +17,9 @@ function App() {
    
           <TokenManager />
           <NFTUploaderAndMinter/>
-          {/* <NFTSubmited/> */}
           <NFTUploader contractAddress={contractNFT} />
-          {/* <NFTManager userAddress={userAddress} />   ✅ PROPS DIKIRIM */}
+        <NFTDashboard contractAddress={contractNFT} />
+
         </>
       )}
     </div>
