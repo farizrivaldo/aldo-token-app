@@ -1,10 +1,13 @@
 import React, { useEffect, useState } from 'react';
 import { ethers } from 'ethers';
 import nftABI from '../utils/aldoNFT_abi.json';
+import tokenABI from '../utils/abi.json';   // ABI token ALDO
 
-function NFTDashboard({ contractAddress }) {
+function NFTDashboard({ contractAddress, tokenAddress }) {
   const [nfts, setNFTs] = useState([]);
   const [account, setAccount] = useState('');
+  const [newPrices, setNewPrices] = useState({});   // <- Tambahan
+  const [approveAmount, setApproveAmount] = useState('');   // Tambahan
 
   const fetchNFTs = async () => {
     if (!window.ethereum) return alert('MetaMask belum terpasang');
@@ -35,11 +38,21 @@ function NFTDashboard({ contractAddress }) {
           ? metadata.image.replace('ipfs://', 'https://gateway.pinata.cloud/ipfs/')
           : metadata.image;
 
+        const priceInALDO = await (async () => {
+          try {
+            const rawPrice = await contract.nftPrices(tokenId);
+            return ethers.formatUnits(rawPrice, 18);
+          } catch (err) {
+            return "0";
+          }
+        })();
+
         nftList.push({
           tokenId: tokenId.toString(),
           name: metadata.name,
           image: imageURL,
           owner: owner.toLowerCase(),
+          price: priceInALDO
         });
 
       } catch (err) {
@@ -48,6 +61,64 @@ function NFTDashboard({ contractAddress }) {
     }
 
     setNFTs(nftList);
+  };
+
+const approveToken = async () => {
+  if (!approveAmount || Number(approveAmount) <= 0) {
+    alert('Masukkan jumlah ALDO yang valid.');
+    return;
+  }
+
+  const provider = new ethers.BrowserProvider(window.ethereum);
+  const signer = await provider.getSigner();
+  const tokenContract = new ethers.Contract(tokenAddress, tokenABI, signer);
+
+  const rawAmount = ethers.parseUnits(approveAmount, 18);
+
+  const tx = await tokenContract.approve(contractAddress, rawAmount);
+  await tx.wait();
+
+  alert(`✅ Approve berhasil untuk ${approveAmount} ALDO`);
+};
+
+  const buyNFT = async (tokenId, price) => {
+    if (!window.ethereum) return alert('MetaMask belum terpasang');
+
+    const provider = new ethers.BrowserProvider(window.ethereum);
+    const signer = await provider.getSigner();
+    const contract = new ethers.Contract(contractAddress, nftABI, signer);
+
+    try {
+      const tx = await contract.buyNFT(tokenId, { gasLimit: 500000 });
+      await tx.wait();
+      alert(`🎉 NFT ID ${tokenId} berhasil dibeli!`);
+      fetchNFTs();
+    } catch (err) {
+      console.error('Gagal membeli NFT:', err);
+      alert('❌ Pembelian gagal: ' + (err.message || 'Unknown error'));
+    }
+  };
+
+  const setPrice = async (tokenId, price) => {
+    if (!price || Number(price) <= 0) {
+      alert('Masukkan harga yang valid.');
+      return;
+    }
+
+    const provider = new ethers.BrowserProvider(window.ethereum);
+    const signer = await provider.getSigner();
+    const contract = new ethers.Contract(contractAddress, nftABI, signer);
+
+    try {
+      const rawPrice = ethers.parseUnits(price, 18);
+      const tx = await contract.setPrice(tokenId, rawPrice);
+      await tx.wait();
+      alert(`✅ Harga NFT ID ${tokenId} diset ${price} ALDO`);
+      fetchNFTs();
+    } catch (err) {
+      console.error('Gagal set harga:', err);
+      alert('❌ Set harga gagal: ' + (err.message || 'Unknown error'));
+    }
   };
 
   useEffect(() => {
@@ -60,6 +131,35 @@ function NFTDashboard({ contractAddress }) {
       <p style={{ textAlign: 'center' }}>
         <strong>Wallet Anda:</strong> {account}
       </p>
+
+      <div style={{ textAlign: 'center', marginBottom: '20px' }}>
+  <input
+    type="text"
+    placeholder="Jumlah ALDO untuk Approve"
+    value={approveAmount}
+    onChange={(e) => setApproveAmount(e.target.value)}
+    style={{
+      padding: '10px',
+      width: '200px',
+      marginRight: '10px'
+    }}
+  />
+
+  <button
+    onClick={approveToken}
+    style={{
+      padding: '10px 20px',
+      backgroundColor: '#008CBA',
+      color: '#fff',
+      border: 'none',
+      borderRadius: '5px',
+      cursor: 'pointer'
+    }}
+  >
+    ✅ Approve ALDO ke Kontrak NFT
+  </button>
+</div>
+
 
       <div style={{
         display: 'grid',
@@ -99,6 +199,66 @@ function NFTDashboard({ contractAddress }) {
             }}>
               👤 <strong>Pemilik:</strong><br /> {nft.owner}
             </p>
+
+            {nft.price !== "0" && (
+              <>
+                <p style={{ marginTop: '10px', fontWeight: 'bold' }}>
+                  💰 Harga: {nft.price} ALDO
+                </p>
+                {nft.owner !== account.toLowerCase() && (
+                  <button
+                    onClick={() => buyNFT(nft.tokenId, nft.price)}
+                    style={{
+                      padding: '10px 20px',
+                      backgroundColor: '#4CAF50',
+                      color: '#fff',
+                      border: 'none',
+                      borderRadius: '5px',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    Beli NFT Ini
+                  </button>
+                )}
+              </>
+            )}
+
+            {nft.price === "0" && (
+              <p style={{ color: 'gray', marginTop: '10px' }}>
+                NFT ini tidak dijual
+              </p>
+            )}
+
+            {nft.owner === account.toLowerCase() && (
+              <div style={{ marginTop: '10px' }}>
+                <input
+                  type="text"
+                  placeholder="Harga baru (ALDO)"
+                  value={newPrices[nft.tokenId] || ''}
+                  onChange={(e) =>
+                    setNewPrices({ ...newPrices, [nft.tokenId]: e.target.value })
+                  }
+                  style={{
+                    padding: '5px',
+                    width: '80%',
+                    marginBottom: '5px'
+                  }}
+                />
+                <button
+                  onClick={() => setPrice(nft.tokenId, newPrices[nft.tokenId])}
+                  style={{
+                    padding: '5px 10px',
+                    backgroundColor: '#FFA500',
+                    color: '#fff',
+                    border: 'none',
+                    borderRadius: '5px',
+                    cursor: 'pointer'
+                  }}
+                >
+                  Set Harga Baru
+                </button>
+              </div>
+            )}
           </div>
         ))}
       </div>

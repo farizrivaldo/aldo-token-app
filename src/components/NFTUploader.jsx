@@ -6,7 +6,7 @@ function NFTDashboard() {
   const [nfts, setNfts] = useState([]);
   const [userAddress, setUserAddress] = useState(null);
 
-  const nftContractAddress = "0x3ED7AbEa85ac7AbEbF4387fFD715bfE0b5beC346";
+  const nftContractAddress = "0x4448143edCd845321050B5fEd23d4F208b4c1a9A";
 
   useEffect(() => {
     loadNFTs();
