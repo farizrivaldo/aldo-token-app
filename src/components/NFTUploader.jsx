@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { ethers } from 'ethers';
 import AldoNFT from '../utils/aldoNFT_abi.json';
 
-function NFTDashboard() {
+function NFTUploader() {
   const [nfts, setNfts] = useState([]);
   const [userAddress, setUserAddress] = useState(null);
 
@@ -125,4 +125,4 @@ function NFTDashboard() {
   );
 }
 
-export default NFTDashboard;
+export default NFTUploader;

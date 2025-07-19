@@ -4,7 +4,7 @@ import nftJson from '../utils/aldoNFT_abi.json';
 import { ethers } from 'ethers';
 const nftAbi = nftJson.abi || nftJson;
 
-const NFTUploaderAndMinter = () => {
+const NFTUploaderAndMinter= () => {
   const [userAddress, setUserAddress] = useState('');
   const [file, setFile] = useState(null);
   const [name, setName] = useState('');
